@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080a0b">
+  <meta name="description" content="Consulta e cadastro do patrimônio da ASVATH.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ASVATH Box">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ASVATH Box | Patrimônio</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icons/asvath-logo-transparent.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/variations.css">
+  <link rel="stylesheet" href="/css/export-menu.css">
+  <link rel="stylesheet" href="/css/asset-actions.css">
+  <link rel="stylesheet" href="/css/pwa.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="ASVATH Box"><img src="/icons/asvath-logo-transparent.png" alt="ASVATH"><span>BOX <i>•</i> PATRIMÔNIO</span></a>
+      <div class="workspace-label">PATRIMÔNIO</div>
+      <nav class="nav" aria-label="Navegação principal"><div class="nav-item active"><span class="nav-icon">▦</span> Bens <span class="nav-count" id="nav-count">0</span></div></nav>
+      <div class="sidebar-bottom"><div class="connection"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">Carregando dados…</span></div><div class="sidebar-foot">ASVATH BOX <span>v0.1.0</span></div></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div class="breadcrumbs">ASVATH Box <span>/</span> <strong>Patrimônio</strong></div><div class="top-actions"><span class="today" id="today"></span><button class="button button-light install-button" id="install-app" type="button">＋ Instalar app</button><span class="read-only-tag">GESTÃO DE BENS</span></div></header>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <section class="view active">
+        <div class="page-heading"><div><div class="eyebrow">CONSULTA PATRIMONIAL</div><h1>Patrimônio</h1><p>Consulte, filtre por categoria e adicione bens da ASVATH.</p></div><button class="button button-primary" id="add-asset-button" type="button">＋ Adicionar bem</button></div>
+        <div class="list-summary"><div><strong id="asset-count">0 bens</strong><span> no inventário</span></div><span id="last-updated">Conectando ao Supabase…</span></div>
+        <div class="inventory-toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar por bem, código ou tipo de medida…" autocomplete="off"></label><select id="filter-category" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select><div class="export-menu"><button class="button button-light" id="export-button" type="button">⇩ Exportar</button><div class="export-options" id="export-options"><a href="/api/export/xlsx">Planilha Excel</a><a href="/api/export/pdf">Documento PDF</a><a href="/api/export/csv">Arquivo CSV</a></div></div></div>
+        <article class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Bem</th><th>Categoria</th><th>Tipo de medida</th><th>Medidas e tamanhos</th><th>Criado em</th><th>Ações</th></tr></thead><tbody id="asset-rows"></tbody></table></div><div class="empty-state hidden" id="assets-empty"><div class="empty-icon">▦</div><h3 id="empty-title">Nenhum bem cadastrado</h3><p id="empty-description">Os bens disponíveis aparecerão aqui.</p></div></article>
+      </section>
+      <footer class="page-footer"><span>© 2026 ASVATH Box</span><span>Consulta e adição de bens</span></footer>
+    </main>
+  </div>
+  <dialog id="asset-dialog" class="dialog small-dialog">
+    <form id="asset-form">
+      <input type="hidden" id="asset-id">
+      <div class="dialog-heading"><div><div class="eyebrow">NOVO REGISTRO</div><h2>Adicionar bem</h2><p>Informe o nome; a categoria é opcional.</p></div><button type="button" class="close-button" data-close-dialog aria-label="Fechar">×</button></div>
+      <label class="form-field">Nome do bem <em>*</em><input name="nome" required maxlength="160" placeholder="Ex.: Notebook Dell Latitude"></label>
+      <label class="form-field">Categoria <span class="auto-note">Opcional</span><input name="categoria" maxlength="80" placeholder="Ex.: Informática"></label>
+      <div class="dialog-actions"><button type="button" class="button button-light" data-close-dialog>Cancelar</button><button type="submit" class="button button-primary" id="save-asset">Salvar bem</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

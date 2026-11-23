@@ -1,0 +1,6 @@
+.export-menu{position:relative;z-index:8}
+.export-options{display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:20;width:190px;padding:5px;background:#111416;border:1px solid #3b4142;border-radius:6px;box-shadow:0 14px 32px #000b}
+.export-options.open{display:flex;flex-direction:column}
+.export-options a{display:flex;align-items:center;min-height:36px;width:100%;padding:0 10px;border-radius:3px;color:#dedfdb;text-decoration:none;font-size:10px;line-height:1.3}
+.export-options a:hover,.export-options a:focus-visible{outline:none;background:#28230d;color:#ffdf42}
+@media(max-width:430px){.export-options{width:min(100%,230px)}}

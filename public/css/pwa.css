@@ -1,0 +1,4 @@
+.install-button{height:32px;padding:0 10px;font-size:9px;border-color:#544713;color:#f3c91b}
+.install-button:hover{border-color:#f3c91b;color:#ffdf42}
+.install-button[hidden]{display:none}
+@media(max-width:620px){.top-actions{gap:8px}.install-button{height:30px;padding:0 8px}.today{display:none}}

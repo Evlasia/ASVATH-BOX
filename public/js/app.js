@@ -386,3 +386,19 @@ installButton.addEventListener('click', async () => {
 window.addEventListener('appinstalled', () => { installButton.hidden = true; toast('ASVATH Box instalado neste dispositivo.'); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 loadData();
+
+/* Alternância de tema: colorido (cores da ASVATH) ou preto e branco */
+(() => {
+  const btn = document.getElementById('theme-toggle');
+  const label = document.getElementById('theme-label');
+  if (!btn) return;
+  const KEY = 'asvath-theme';
+  const apply = (bw) => {
+    document.documentElement.classList.toggle('mode-bw', bw);
+    btn.setAttribute('aria-pressed', String(bw));
+    label.textContent = bw ? 'Colorido' : 'P&B';
+    try { localStorage.setItem(KEY, bw ? 'bw' : 'color'); } catch (e) {}
+  };
+  apply(document.documentElement.classList.contains('mode-bw'));
+  btn.addEventListener('click', () => apply(!document.documentElement.classList.contains('mode-bw')));
+})();

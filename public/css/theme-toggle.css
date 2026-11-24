@@ -1,0 +1,9 @@
+/* Alternância entre modo colorido (cores da ASVATH) e preto e branco */
+html.mode-bw{filter:grayscale(100%)}
+html.mode-bw body{background:#000}
+.theme-toggle{height:32px;padding:0 10px;font-size:9px;border:1px solid #544713;border-radius:5px;background:#151819;color:#f3c91b;font-weight:700;letter-spacing:.06em;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:border-color .15s,color .15s}
+.theme-toggle:hover{border-color:#f3c91b;color:#ffdf42}
+.theme-toggle .theme-dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(90deg,#f3c91b 50%,#fff 50%);border:1px solid #888}
+.theme-toggle[aria-pressed="true"] .theme-dot{background:linear-gradient(90deg,#fff 50%,#777 50%);border-color:#fff}
+.theme-toggle:focus-visible{outline:2px solid #f3c91b;outline-offset:2px}
+@media(max-width:620px){.theme-toggle{height:30px;padding:0 8px}}

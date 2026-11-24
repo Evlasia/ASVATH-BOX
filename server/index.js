@@ -198,7 +198,7 @@ app.get('/api/export/:format', run(async (req, res) => {
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota inexistente ou indisponível.' }));
 
-app.listen(port, '127.0.0.1', () => {
-  console.log(`ASVATH Box disponível em http://127.0.0.1:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`ASVATH Box disponível em http://0.0.0.0:${port}`);
   console.log(`Supabase ${isSupabaseConfigured ? 'configurado' : 'aguardando configuração em .env'}`);
 });

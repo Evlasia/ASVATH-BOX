@@ -46,6 +46,11 @@ function toast(message, error = false) {
   window.toastTimer = setTimeout(() => el.classList.remove('show', 'error'), 3500);
 }
 
+function quantityOf(asset) {
+  const value = Number(asset.quantidade);
+  return Number.isFinite(value) ? value : 0;
+}
+
 function variationSummary(asset) {
   const variations = Array.isArray(asset.variacoes) ? asset.variacoes : [];
   const fields = Array.isArray(asset.variacoes_campos) ? asset.variacoes_campos : [];
@@ -78,9 +83,9 @@ function render() {
   $('#asset-rows').innerHTML = rows.map((asset) => {
     const actions = asset.pending
       ? '<span class="pending-actions">Aguardando sincronização</span>'
-      : `<div class="row-actions"><button class="icon-action" type="button" data-action="edit" data-id="${escapeHtml(asset.id)}" aria-label="Editar ${escapeHtml(asset.nome)}" title="Editar">✎</button><button class="icon-action danger" type="button" data-action="delete" data-id="${escapeHtml(asset.id)}" aria-label="Remover ${escapeHtml(asset.nome)}" title="Remover">×</button></div>`;
+      : `<div class="row-actions"><button class="icon-action qty-action" type="button" data-action="add-qty" data-id="${escapeHtml(asset.id)}" aria-label="Adicionar quantidade a ${escapeHtml(asset.nome)}" title="Adicionar quantidade">＋</button><button class="icon-action" type="button" data-action="edit" data-id="${escapeHtml(asset.id)}" aria-label="Editar ${escapeHtml(asset.nome)}" title="Editar">✎</button><button class="icon-action danger" type="button" data-action="delete" data-id="${escapeHtml(asset.id)}" aria-label="Remover ${escapeHtml(asset.nome)}" title="Remover">×</button></div>`;
     const createdAt = asset.created_at ? new Date(asset.created_at).toLocaleDateString('pt-BR') : '—';
-    return `<tr><td><div class="table-asset"><span class="asset-icon">▦</span><div><div class="asset-name">${escapeHtml(asset.nome || 'Bem sem nome')}</div><div class="asset-code">${escapeHtml(asset.codigo || 'Pendente de sincronização')}</div></div></div></td><td class="table-category">${escapeHtml(asset.categoria || '—')}</td><td>${escapeHtml(asset.variacoes_tipo || '—')}</td><td class="variation-cell" title="${escapeHtml(variationSummary(asset))}">${escapeHtml(variationSummary(asset))}</td><td>${escapeHtml(createdAt)}</td><td>${actions}</td></tr>`;
+    return `<tr><td><div class="table-asset"><span class="asset-icon">▦</span><div><div class="asset-name">${escapeHtml(asset.nome || 'Bem sem nome')}</div><div class="asset-code">${escapeHtml(asset.codigo || 'Pendente de sincronização')}</div></div></div></td><td class="table-category">${escapeHtml(asset.categoria || '—')}</td><td>${escapeHtml(asset.variacoes_tipo || '—')}</td><td class="variation-cell" title="${escapeHtml(variationSummary(asset))}">${escapeHtml(variationSummary(asset))}</td><td class="qty-cell"><strong>${quantityOf(asset)}</strong><span class="qty-unit"> un.</span></td><td>${escapeHtml(createdAt)}</td><td>${actions}</td></tr>`;
   }).join('');
   const empty = rows.length === 0;
   $('.table-scroll').classList.toggle('hidden', empty);
@@ -222,6 +227,7 @@ function openEditAsset(asset) {
   $('#asset-id').value = asset.id;
   form.elements.namedItem('nome').value = asset.nome || '';
   form.elements.namedItem('categoria').value = asset.categoria || '';
+  form.elements.namedItem('quantidade').value = quantityOf(asset);
   $('.dialog-heading h2', $('#asset-dialog')).textContent = 'Editar bem';
   $('.dialog-heading p', $('#asset-dialog')).textContent = 'Atualize o nome, a categoria ou as medidas.';
   $('#save-asset').textContent = 'Salvar alterações';
@@ -281,6 +287,7 @@ async function syncQueue() {
       if (!response.ok) break;
       await response.json();
       await offlineStore.clearQueueItem(item.id);
+      if (item.localId) state.bens = state.bens.filter((asset) => asset.id !== item.localId);
       synced++;
     } catch { break; }
   }
@@ -290,12 +297,14 @@ async function syncQueue() {
 async function loadData() {
   try {
     const assets = await getJson('/api/bens');
-    state.bens = assets;
     setConnection(true, 'Inventário sincronizado');
-    await offlineStore.replaceAll('bens', assets);
+    const localPending = (await offlineStore.all('bens')).filter((item) => item.pending);
+    state.bens = [...localPending, ...assets];
+    await offlineStore.replaceAll('bens', state.bens);
     const synced = await syncQueue();
     if (synced) {
-      state.bens = await getJson('/api/bens');
+      const fresh = await getJson('/api/bens');
+      state.bens = [...state.bens.filter((item) => item.pending), ...fresh];
       await offlineStore.replaceAll('bens', state.bens);
       toast(`${synced} ${synced === 1 ? 'cadastro sincronizado' : 'cadastros sincronizados'}.`);
     }
@@ -308,6 +317,66 @@ async function loadData() {
   categoryOptions(); render();
 }
 
+const quantityDialog = $('#quantity-dialog');
+function updateQuantityPreview() {
+  const amount = Number($('#quantity-amount').value);
+  const base = Number($('#quantity-current').textContent);
+  $('#quantity-preview').textContent = Number.isInteger(amount) && amount > 0 ? String(base + amount) : '—';
+}
+function openQuantityDialog(assetId) {
+  const asset = state.bens.find((item) => String(item.id) === String(assetId));
+  if (!asset) return toast('Este bem já não está na listagem.', true);
+  $('#quantity-asset-id').value = asset.id;
+  $('#quantity-asset-name').textContent = `${asset.nome} · ${asset.codigo}`;
+  $('#quantity-current').textContent = String(quantityOf(asset));
+  $('#quantity-amount').value = '1';
+  updateQuantityPreview();
+  quantityDialog.showModal();
+  $('#quantity-amount').select();
+}
+$('#quantity-amount').addEventListener('input', updateQuantityPreview);
+document.querySelectorAll('[data-close-quantity]').forEach((button) => button.addEventListener('click', () => quantityDialog.close()));
+$('#quantity-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const assetId = $('#quantity-asset-id').value;
+  const amount = Number($('#quantity-amount').value);
+  if (!Number.isInteger(amount) || amount < 1) return toast('Informe uma quantidade inteira maior que zero.', true);
+  const current = state.bens.find((asset) => String(asset.id) === String(assetId));
+  if (!current) { quantityDialog.close(); return toast('Este bem já não está na listagem.', true); }
+  // Atualização imediata na tela; se o servidor recusar, a linha volta ao valor anterior.
+  state.bens = state.bens.map((asset) => String(asset.id) === String(assetId) ? { ...asset, quantidade: quantityOf(asset) + amount } : asset);
+  render();
+  quantityDialog.close();
+  try {
+    const response = await fetch(`/api/bens/${encodeURIComponent(assetId)}/quantidade`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantidade: amount }) });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || 'Não foi possível adicionar a quantidade.');
+    }
+    const updated = await response.json();
+    state.bens = state.bens.map((asset) => String(asset.id) === String(assetId) ? updated : asset);
+    await offlineStore.replaceAll('bens', state.bens);
+    render();
+    toast(`+${amount} un. em ${updated.codigo}. Total: ${updated.quantidade} un.`);
+  } catch (error) {
+    state.bens = state.bens.map((asset) => String(asset.id) === String(assetId) ? current : asset);
+    render();
+    toast(error.message || 'Falha ao adicionar a quantidade.', true);
+  }
+});
+$('#refresh-button').addEventListener('click', async () => {
+  const button = $('#refresh-button');
+  button.disabled = true;
+  button.classList.add('spinning');
+  try {
+    await loadData();
+    toast(state.online ? 'Lista atualizada.' : 'Sem conexão: exibindo a cópia deste dispositivo.', !state.online);
+  } finally {
+    button.disabled = false;
+    button.classList.remove('spinning');
+  }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadData(); });
 $('#search-input').addEventListener('input', render);
 $('#filter-category').addEventListener('change', render);
 $('#export-button').addEventListener('click', () => $('#export-options').classList.toggle('open'));
@@ -317,6 +386,7 @@ $('#asset-rows').addEventListener('click', (event) => {
   if (!button) return;
   if (button.dataset.action === 'edit') editAsset(button.dataset.id);
   if (button.dataset.action === 'delete') removeAsset(button.dataset.id);
+  if (button.dataset.action === 'add-qty') openQuantityDialog(button.dataset.id);
 });
 document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => $('#asset-dialog').close()));
 $('#asset-dialog').addEventListener('close', () => $('#asset-form').reset());
@@ -352,7 +422,7 @@ $('#asset-form').addEventListener('submit', async (event) => {
         const localRecord = { ...payload, id: `offline-${crypto.randomUUID()}`, codigo: 'Pendente', created_at: new Date().toISOString(), pending: true };
         state.bens.unshift(localRecord);
         await offlineStore.replaceAll('bens', state.bens);
-        await offlineStore.enqueue({ body: payload });
+        await offlineStore.enqueue({ body: payload, localId: localRecord.id });
         categoryOptions(); render(); form.reset(); $('#asset-dialog').close();
         toast('Salvo neste dispositivo; será sincronizado quando a conexão voltar.');
       } catch (queueError) { toast(queueError.message || 'Não foi possível guardar o cadastro offline.', true); }

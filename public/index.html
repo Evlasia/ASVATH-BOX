@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/css/variations.css">
   <link rel="stylesheet" href="/css/export-menu.css">
   <link rel="stylesheet" href="/css/asset-actions.css">
+  <link rel="stylesheet" href="/css/quantity.css">
   <link rel="stylesheet" href="/css/pwa.css">
   <link rel="stylesheet" href="/css/theme-light.css">
   <link rel="stylesheet" href="/css/theme-toggle.css">
@@ -37,8 +38,8 @@
       <section class="view active">
         <div class="page-heading"><div><div class="eyebrow">CONSULTA PATRIMONIAL</div><h1>Patrimônio</h1><p>Consulte, filtre por categoria e adicione bens da ASVATH.</p></div><button class="button button-primary" id="add-asset-button" type="button">＋ Adicionar bem</button></div>
         <div class="list-summary"><div><strong id="asset-count">0 bens</strong><span> no inventário</span></div><span id="last-updated">Conectando ao Supabase…</span></div>
-        <div class="inventory-toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar por bem, código ou tipo de medida…" autocomplete="off"></label><select id="filter-category" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select><div class="export-menu"><button class="button button-light" id="export-button" type="button">⇩ Exportar</button><div class="export-options" id="export-options"><a href="/api/export/xlsx">Planilha Excel</a><a href="/api/export/pdf">Documento PDF</a><a href="/api/export/csv">Arquivo CSV</a></div></div></div>
-        <article class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Bem</th><th>Categoria</th><th>Tipo de medida</th><th>Medidas e tamanhos</th><th>Criado em</th><th>Ações</th></tr></thead><tbody id="asset-rows"></tbody></table></div><div class="empty-state hidden" id="assets-empty"><div class="empty-icon">▦</div><h3 id="empty-title">Nenhum bem cadastrado</h3><p id="empty-description">Os bens disponíveis aparecerão aqui.</p></div></article>
+        <div class="inventory-toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar por bem, código ou tipo de medida…" autocomplete="off"></label><select id="filter-category" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select><button class="button button-light refresh-button" id="refresh-button" type="button" title="Buscar os dados mais recentes"><span class="refresh-icon">↻</span> Atualizar</button><div class="export-menu"><button class="button button-light" id="export-button" type="button">⇩ Exportar</button><div class="export-options" id="export-options"><a href="/api/export/xlsx">Planilha Excel</a><a href="/api/export/pdf">Documento PDF</a><a href="/api/export/csv">Arquivo CSV</a></div></div></div>
+        <article class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Bem</th><th>Categoria</th><th>Tipo de medida</th><th>Medidas e tamanhos</th><th>Quantidade</th><th>Criado em</th><th>Ações</th></tr></thead><tbody id="asset-rows"></tbody></table></div><div class="empty-state hidden" id="assets-empty"><div class="empty-icon">▦</div><h3 id="empty-title">Nenhum bem cadastrado</h3><p id="empty-description">Os bens disponíveis aparecerão aqui.</p></div></article>
       </section>
       <footer class="page-footer"><span>© 2026 ASVATH Box</span><span>Consulta e adição de bens</span></footer>
     </main>
@@ -49,7 +50,18 @@
       <div class="dialog-heading"><div><div class="eyebrow">NOVO REGISTRO</div><h2>Adicionar bem</h2><p>Informe o nome; a categoria é opcional.</p></div><button type="button" class="close-button" data-close-dialog aria-label="Fechar">×</button></div>
       <label class="form-field">Nome do bem <em>*</em><input name="nome" required maxlength="160" placeholder="Ex.: Notebook Dell Latitude"></label>
       <label class="form-field">Categoria <span class="auto-note">Opcional</span><input name="categoria" maxlength="80" placeholder="Ex.: Informática"></label>
+      <label class="form-field">Quantidade em estoque <span class="auto-note">Opcional</span><input name="quantidade" type="number" min="0" max="1000000000" step="1" value="0" inputmode="numeric"></label>
       <div class="dialog-actions"><button type="button" class="button button-light" data-close-dialog>Cancelar</button><button type="submit" class="button button-primary" id="save-asset">Salvar bem</button></div>
+    </form>
+  </dialog>
+  <dialog id="quantity-dialog" class="dialog small-dialog">
+    <form id="quantity-form">
+      <input type="hidden" id="quantity-asset-id">
+      <div class="dialog-heading"><div><div class="eyebrow">ESTOQUE</div><h2>Adicionar quantidade</h2><p id="quantity-asset-name"></p></div><button type="button" class="close-button" data-close-quantity aria-label="Fechar">×</button></div>
+      <p class="quantity-line">Quantidade atual: <strong id="quantity-current">0</strong> un.</p>
+      <label class="form-field">Quantidade a adicionar <em>*</em><input id="quantity-amount" name="quantidade" type="number" min="1" max="1000000" step="1" value="1" required inputmode="numeric"></label>
+      <p class="quantity-line">Nova quantidade: <strong id="quantity-preview">—</strong> un.</p>
+      <div class="dialog-actions"><button type="button" class="button button-light" data-close-quantity>Cancelar</button><button type="submit" class="button button-primary" id="save-quantity">Adicionar</button></div>
     </form>
   </dialog>
   <script type="module" src="/js/app.js"></script>

@@ -24,7 +24,7 @@ Requisitos: Node.js 18+ e um projeto Supabase.
 
 1. Execute `npm install`.
 2. Copie `.env.example` para `.env` e configure `SUPABASE_URL` e `SUPABASE_SECRET_KEY`.
-3. Execute `supabase/migrations/202611230001_initial_schema.sql` no SQL Editor do Supabase.
+3. Execute as migrações de `supabase/migrations/`, em ordem, no SQL Editor do Supabase (a mais recente adiciona a quantidade em estoque).
 4. Execute `npm start` e abra `http://127.0.0.1:3000`. No navegador compatível, escolha **Instalar app**; no iPhone/iPad, use **Partilhar → Adicionar ao ecrã principal**.
 
 `npm run dev` inicia o servidor em modo de desenvolvimento.
@@ -46,7 +46,8 @@ A migração cria apenas `public.bens`, com os campos de cadastro e medidas desc
 | `GET` | `/api/health` | Estado da configuração do serviço |
 | `GET` | `/api/bens` | Lista; aceita busca `q` e filtro `categoria` |
 | `POST` | `/api/bens` | Adiciona um bem e suas medidas opcionais |
-| `PATCH` | `/api/bens/:id` | Edita nome, categoria e medidas |
+| `PATCH` | `/api/bens/:id` | Edita nome, categoria, quantidade em estoque e medidas |
+| `POST` | `/api/bens/:id/quantidade` | Soma uma quantidade ao estoque do bem (`{ "quantidade": 5 }`) |
 | `DELETE` | `/api/bens/:id` | Remove da listagem por exclusão lógica |
 | `GET` | `/api/export/csv`, `/api/export/xlsx`, `/api/export/pdf` | Exporta os campos atuais do inventário |
 

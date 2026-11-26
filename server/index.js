@@ -3,7 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import { createAsset, deleteAsset, isSupabaseConfigured, listAssets, updateAsset } from './db.js';
+import { addAssetQuantity, createAsset, deleteAsset, isSupabaseConfigured, listAssets, updateAsset } from './db.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -14,7 +14,12 @@ app.use(helmet({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static('public', { extensions: ['html'] }));
 const run = (handler) => (req, res) => Promise.resolve(handler(req, res)).catch((error) => res.status(error.status || 500).json({ error: error.message || 'Erro interno.' }));
-const assetFields = ['nome', 'categoria', 'variacoes_tipo', 'variacoes_campos', 'variacoes'];
+const assetFields = ['nome', 'categoria', 'variacoes_tipo', 'variacoes_campos', 'variacoes', 'quantidade'];
+const parseStock = (value) => {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0 || number > 1000000000) throw Object.assign(new Error('A quantidade em estoque deve ser um número inteiro entre 0 e 1.000.000.000.'), { status: 400 });
+  return number;
+};
 const pick = (object, fields) => Object.fromEntries(fields.filter((key) => object[key] !== undefined).map((key) => [key, object[key] === '' ? null : object[key]]));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, database: 'supabase', configured: isSupabaseConfigured, supportsAdding: true, supportsEditing: true, supportsRemoving: true }));
@@ -71,6 +76,7 @@ app.post('/api/bens', run(async (req, res) => {
     }).filter((item) => Object.keys(item.valores).length);
     if (!data.variacoes_campos?.length) { delete data.variacoes; delete data.variacoes_campos; delete data.variacoes_tipo; }
   }
+  data.quantidade = parseStock(data.quantidade ?? 0);
   res.status(201).json(await createAsset(data));
 }));
 app.patch('/api/bens/:id', run(async (req, res) => {
@@ -122,7 +128,14 @@ app.patch('/api/bens/:id', run(async (req, res) => {
     }).filter((item) => Object.keys(item.valores).length);
     if (!data.variacoes_campos?.length) { data.variacoes = []; data.variacoes_campos = []; data.variacoes_tipo = null; }
   }
+  if (data.quantidade !== undefined) data.quantidade = parseStock(data.quantidade ?? 0);
   res.json(await updateAsset(req.params.id, data));
+}));
+app.post('/api/bens/:id/quantidade', run(async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'Identificador de bem inválido.' });
+  const amount = Number(req.body?.quantidade);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 1000000) return res.status(400).json({ error: 'Informe uma quantidade inteira entre 1 e 1.000.000.' });
+  res.json(await addAssetQuantity(req.params.id, amount));
 }));
 app.delete('/api/bens/:id', run(async (req, res) => {
   if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: 'Identificador de bem inválido.' });
@@ -133,7 +146,7 @@ app.get('/api/export/:format', run(async (req, res) => {
   const rows = await listAssets();
   const columns = [
     ['codigo', 'Código'], ['nome', 'Bem'], ['categoria', 'Categoria'],
-    ['variacoes_tipo', 'Tipo de medida'], ['variacoes_resumo', 'Medidas e tamanhos'], ['created_at', 'Criado em']
+    ['variacoes_tipo', 'Tipo de medida'], ['variacoes_resumo', 'Medidas e tamanhos'], ['quantidade', 'Quantidade em estoque'], ['created_at', 'Criado em']
   ];
   const summarize = (row) => {
     const fields = row.variacoes_campos || [];
@@ -176,7 +189,7 @@ app.get('/api/export/:format', run(async (req, res) => {
     pdf.fillColor('#555555').moveDown(1.5).fontSize(8).text(`Gerado em ${new Date().toLocaleString('pt-BR')} - ${rows.length} bens`);
     pdf.moveDown();
     const headings = columns.map(([, label]) => label);
-    const widths = [78, 150, 105, 105, 240, 100];
+    const widths = [70, 140, 95, 95, 218, 70, 90];
     const drawHeader = () => {
       let x = 32; const y = pdf.y;
       pdf.rect(32, y - 4, 778, 18).fill('#f3c91b');
@@ -188,7 +201,7 @@ app.get('/api/export/:format', run(async (req, res) => {
       if (pdf.y > 530) { pdf.addPage(); drawHeader(); }
       const values = columns.map(([key]) => row[key]);
       let x = 32; const y = pdf.y;
-      values.forEach((value, index) => { pdf.fillColor('#333333').font('Helvetica').fontSize(7).text(String(value || '-'), x, y, { width: widths[index], height: 26, ellipsis: true }); x += widths[index]; });
+      values.forEach((value, index) => { pdf.fillColor('#333333').font('Helvetica').fontSize(7).text((String(value ?? '') || '-'), x, y, { width: widths[index], height: 26, ellipsis: true }); x += widths[index]; });
       pdf.moveDown(2.4);
     }
     return pdf.end();
